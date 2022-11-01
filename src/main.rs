@@ -10,10 +10,11 @@ use defmt_rtt as _;
 use embedded_hal::digital::v2::OutputPin;
 use panic_probe as _;
 
-// Provide an alias for our BSP so we can switch targets quickly.
-// Uncomment the BSP you included in Cargo.toml, the rest of the code does not need to change.
-use rp_pico as bsp;
-// use sparkfun_pro_micro_rp2040 as bsp;
+use cortex_m as _;
+
+// import our bsp (Board support package) and alias it as bsp. Doing to lets us easily
+// change which bsp we use in the future.
+use adafruit_feather_rp2040 as bsp;
 
 use bsp::hal::{
     clocks::{init_clocks_and_plls, Clock},
@@ -53,7 +54,11 @@ fn main() -> ! {
         &mut pac.RESETS,
     );
 
-    let mut led_pin = pins.led.into_push_pull_output();
+    // pin re-assignments (to handle switching between bsp)
+    let led_pin = pins.d13;
+
+    // run
+    let mut led_pin = led_pin.into_push_pull_output();
 
     loop {
         info!("on!");
