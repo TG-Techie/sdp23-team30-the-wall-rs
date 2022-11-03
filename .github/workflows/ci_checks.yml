@@ -13,7 +13,7 @@ jobs:
       matrix:
         # All generated code should be running on stable now
         # rust: [nightly, stable]
-        rust: [stable]
+        rust: [nightly, stable]
         include:
           # Nightly is only for reference and allowed to fail
           - rust: nightly
