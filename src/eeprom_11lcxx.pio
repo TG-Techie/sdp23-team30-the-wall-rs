@@ -1,0 +1,22 @@
+
+
+.program eeprom_11lcxx
+
+.side_set 1 opt pindirs
+.wrap_target
+    
+    nop side 1
+    nop side 0
+    ; 
+    ; set pindirs 0
+    ; nop
+    ; mov pins !pins
+    ; nop    side 1
+    ; set pins 1
+    ; set pins 0
+    ; nop    side 0
+    ; set pins 1
+    ; set pins 0
+.wrap
+
+;

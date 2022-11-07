@@ -7,7 +7,6 @@
 use bsp::entry;
 use defmt::*;
 use defmt_rtt as _;
-use embedded_hal::digital::v2::OutputPin;
 use panic_probe as _;
 
 use cortex_m as _;
@@ -25,11 +24,19 @@ use bsp::hal::{
 
 /* ========== [ eeprom driver imports ] ========== */
 use pio_proc;
-use rp2040_hal::gpio::{FunctionPio0, Pin};
-use rp2040_hal::pio;
-use rp2040_hal::pio::PIOExt;
+// use rp2040_hal::pio;
+
+use rp2040_hal::gpio::{self, PullDown, PullUp};
+use rp2040_hal::gpio::{bank0::Gpio10, Pin, PinId};
+
+use rp2040_hal::pio::{
+    PIOExt, PinDir, PinState, Rx, ShiftDirection, StateMachine, StateMachineIndex, Tx,
+    UninitStateMachine, PIO,
+};
 
 /* ========== [ Main story / entry code ] ========== */
+
+mod there_be_dragons;
 
 #[entry]
 fn main() -> ! {
@@ -53,7 +60,9 @@ fn main() -> ! {
     .ok()
     .unwrap();
 
-    let mut delay = cortex_m::delay::Delay::new(core.SYST, clocks.system_clock.freq().to_Hz());
+    let mut _delay = cortex_m::delay::Delay::new(core.SYST, clocks.system_clock.freq().to_Hz());
+
+    let pad10 = pac.PADS_BANK0.gpio[10].as_ptr();
 
     let pins = bsp::Pins::new(
         pac.IO_BANK0,
@@ -62,44 +71,60 @@ fn main() -> ! {
         &mut pac.RESETS,
     );
 
-    // pin re-assignments (to handle switching between bsp)
-    let led_pin = pins.d13;
-
-    // setup the blink led
-    let mut led_pin = led_pin.into_push_pull_output();
-
     // setup the rp2040's pio
-    let _eeprom_pin: Pin<_, FunctionPio0> = pins.a0.into_mode();
-    let eeprom_pin_id: u8 = 26;
+    // https://learn.adafruit.com/assets/100337
+    type EEPROMPinId = Gpio10;
+    type SCL = EEPROMPinId;
+    type P = pac::PIO0;
 
-    let program = pio_proc::pio_asm!(
-        ".wrap_target",
-        "set pins 0b1",
-        "set pins 0b0",
-        ".wrap",
-        // select_program("eeprom_11xx"), // Optional if only one program in the file
-        // options(max_program_size = 32)
-    );
+    let eeprom_pin_id = 10; //EEPROMPinId::DYN.num;
+    let eeprom_pin: Pin<EEPROMPinId, gpio::Disabled<PullDown>> = pins.d10;
+    let scl = eeprom_pin;
+
+    let program = pio_proc::pio_file!("src/eeprom_11lcxx.pio");
 
     let (mut pio, sm0, _, _, _) = pac.PIO0.split(&mut pac.RESETS);
     let installed = pio.install(&program.program).unwrap();
-    let (mut sm, _, _) = rp2040_hal::pio::PIOBuilder::from_program(installed)
+    let (mut sm, _, mut tx) = rp2040_hal::pio::PIOBuilder::from_program(installed)
+        // .buffers(rp2040_hal::pio::Buffers::RxTx)
         .set_pins(eeprom_pin_id, 1)
+        .out_pins(eeprom_pin_id, 1)
+        .in_pin_base(eeprom_pin_id)
+        .side_set_pin_base(eeprom_pin_id)
+        .in_shift_direction(ShiftDirection::Left)
         .clock_divisor(65536.0)
         .build(sm0);
-    // The GPIO pin needs to be configured as an output.
-    sm.set_pindirs([(eeprom_pin_id, pio::PinDir::Output)]);
-    sm.start();
+
+    // enable pull up on SDA & SCL: idle bus
+    let scl = scl.into_pull_up_input();
+
+    // This will pull the bus high for a little bit of time
+    sm.set_pins([(SCL::DYN.num, PinState::High)]);
+    sm.set_pindirs([(SCL::DYN.num, PinDir::Output)]);
+
+    // attach SCL pin to pio
+    let mut scl: Pin<SCL, gpio::Function<P>> = scl.into_mode();
+    // configure SCL pin as inverted
+    scl.set_output_enable_override(rp2040_hal::gpio::OutputEnableOverride::Invert);
+
+    // the PIO now keeps the pin as Input, we can set the pin state to Low.
+    sm.set_pins([(SCL::DYN.num, PinState::Low)]);
+
+    unsafe {
+        *pad10 |= 0b1000;
+    }
 
     // run
+    let _sm = sm.start();
 
     loop {
-        info!("on!");
-        led_pin.set_high().unwrap();
-        delay.delay_ms(500);
-        info!("off!");
-        led_pin.set_low().unwrap();
-        delay.delay_ms(500);
+        tx.write(0);
+        // info!("on!");
+        // led_pin.set_high().unwrap();
+        // delay.delay_ms(500);
+        // info!("off!");
+        // led_pin.set_low().unwrap();
+        // delay.delay_ms(500);
     }
 }
 
