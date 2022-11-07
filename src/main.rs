@@ -26,18 +26,12 @@ use bsp::hal::{
 use pio_proc;
 // use rp2040_hal::pio;
 
-use rp2040_hal::gpio::{self, PullDown, PullUp};
-use rp2040_hal::gpio::{bank0::Gpio10, Pin, PinId};
-
-use rp2040_hal::pio::{
-    PIOExt, PinDir, PinState, Rx, ShiftDirection, StateMachine, StateMachineIndex, Tx,
-    UninitStateMachine, PIO,
-};
+use rp2040_hal::gpio::{self, bank0::Gpio10, Pin, PinId, PullDown};
+use rp2040_hal::pio::{PIOExt, PinDir, PinState, ShiftDirection};
 
 /* ========== [ Main story / entry code ] ========== */
 
 mod there_be_dragons;
-use there_be_dragons::SetPulls;
 
 #[entry]
 fn main() -> ! {
@@ -62,8 +56,6 @@ fn main() -> ! {
     .unwrap();
 
     let mut _delay = cortex_m::delay::Delay::new(core.SYST, clocks.system_clock.freq().to_Hz());
-
-    // let pad10 = pac.PADS_BANK0.gpio[10].as_ptr();
 
     let pins = bsp::Pins::new(
         pac.IO_BANK0,

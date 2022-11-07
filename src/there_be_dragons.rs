@@ -1,4 +1,4 @@
-#![no_std]
+#![allow(unused)]
 
 // use rp2040_hal::gpio::reg::RegisterInterface;
 
@@ -19,7 +19,7 @@ impl<I: PinId> PinPulls<I> {
         (*self._ptr & Self::PULL_UP_ENABLE_MASK) == Self::PULL_UP_ENABLE_MASK
     }
 
-    pub fn set_pull_up(mut self, enable: bool) {
+    pub fn set_pull_up(&mut self, enable: bool) {
         if enable {
             *self._ptr |= Self::PULL_UP_ENABLE_MASK;
         } else {
