@@ -18,6 +18,7 @@ adafruit-feather-rp2040="0.4"
 # basic utilies
 pio-proc = "0.2"
 rp2040-hal = "0.6"
+rp2040-pac = "0.3"
 pio = "0.2"
 fugit = "0.3.6"
 

@@ -37,6 +37,7 @@ use rp2040_hal::pio::{
 /* ========== [ Main story / entry code ] ========== */
 
 mod there_be_dragons;
+use there_be_dragons::SetPulls;
 
 #[entry]
 fn main() -> ! {
@@ -62,7 +63,7 @@ fn main() -> ! {
 
     let mut _delay = cortex_m::delay::Delay::new(core.SYST, clocks.system_clock.freq().to_Hz());
 
-    let pad10 = pac.PADS_BANK0.gpio[10].as_ptr();
+    // let pad10 = pac.PADS_BANK0.gpio[10].as_ptr();
 
     let pins = bsp::Pins::new(
         pac.IO_BANK0,
@@ -110,9 +111,8 @@ fn main() -> ! {
     // the PIO now keeps the pin as Input, we can set the pin state to Low.
     sm.set_pins([(SCL::DYN.num, PinState::Low)]);
 
-    unsafe {
-        *pad10 |= 0b1000;
-    }
+    use there_be_dragons::SetPulls;
+    let _pulls = scl.as_pulls().unwrap().set_pull_up(true);
 
     // run
     let _sm = sm.start();
