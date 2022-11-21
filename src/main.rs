@@ -55,7 +55,7 @@ fn main() -> ! {
     .ok()
     .unwrap();
 
-    let mut _delay = cortex_m::delay::Delay::new(core.SYST, clocks.system_clock.freq().to_Hz());
+    let mut delay = cortex_m::delay::Delay::new(core.SYST, clocks.system_clock.freq().to_Hz());
 
     let pins = bsp::Pins::new(
         pac.IO_BANK0,
@@ -85,7 +85,8 @@ fn main() -> ! {
         .in_pin_base(eeprom_pin_id)
         .side_set_pin_base(eeprom_pin_id)
         .in_shift_direction(ShiftDirection::Left)
-        .clock_divisor(65536.0)
+        .out_shift_direction(ShiftDirection::Right)
+        .clock_divisor(1000.0)
         .build(sm0);
 
     // enable pull up on SDA & SCL: idle bus
@@ -110,7 +111,10 @@ fn main() -> ! {
     let _sm = sm.start();
 
     loop {
-        tx.write(0);
+        if tx.is_empty() {
+            delay.delay_ms(5);
+            tx.write((0b10110101_u32 << 24).reverse_bits());
+        }
         // info!("on!");
         // led_pin.set_high().unwrap();
         // delay.delay_ms(500);

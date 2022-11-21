@@ -2,21 +2,38 @@
 
 .program eeprom_11lcxx
 
+
+; ==== [ Packet Format ] ====
+; byte 3    byte 2    byte 1       byte 0     
+; 01010101  command   
+; 
+
+.define Thdr 7
+.define halfTbit 7
+
 .side_set 1 opt pindirs
 .wrap_target
     
-    nop side 1
-    nop side 0
-    ; 
-    ; set pindirs 0
-    ; nop
-    ; mov pins !pins
-    ; nop    side 1
-    ; set pins 1
-    ; set pins 0
-    ; nop    side 0
-    ; set pins 1
-    ; set pins 0
-.wrap
+    ; set x 8
+    pull block  side 0 [7]
+    ; mov y osr
 
-;
+do_header:
+    set x 8     side 0 [Thdr]
+_header_loop:
+    nop         side 1 [halfTbit]
+    jmp x--   _header_loop  side 0 [halfTbit]
+
+    set y 8     side 0 [7]
+_loop:
+    ; mov x osr
+    out pindirs 1       [3]
+
+    ; mov osr !x
+    ; out pindirs 1 
+
+    ; mov osr !osr
+    jmp y-- _loop
+    nop side 1
+
+.wrap
