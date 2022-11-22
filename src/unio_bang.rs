@@ -24,14 +24,6 @@ impl<P: PinId> OpenDrainPin<P> {
 
         Self::PulledUp(pin)
     }
-
-    fn set_pulled_up(&mut self) -> Option<()> {
-        Some(())
-    }
-
-    fn set_low(&mut self) -> Option<()> {
-        None.unwrap()
-    }
 }
 
 impl<P: PinId> UNIOBang<P> {
@@ -41,8 +33,12 @@ impl<P: PinId> UNIOBang<P> {
         }
     }
 
+    fn set_pulled_up(&mut self) {}
+
+    fn set_low(&mut self) {}
+
     pub fn write_word(&mut self, word: u8) -> Option<()> {
-        self.pin.set_pulled_up();
+        self.set_pulled_up();
         None
     }
 }

@@ -7,6 +7,7 @@
 use bsp::entry;
 use defmt::*;
 use defmt_rtt as _;
+use embedded_hal::digital::v2::OutputPin;
 use panic_probe as _;
 
 use cortex_m as _;
@@ -33,6 +34,8 @@ use rp2040_hal::pio::{PIOExt, PinDir, PinState, ShiftDirection};
 
 mod there_be_dragons;
 mod unio_bang;
+
+use crate::unio_bang::UNIOBang;
 
 #[entry]
 fn main() -> ! {
@@ -72,11 +75,14 @@ fn main() -> ! {
     pin.set_output_enable_override(rp2040_hal::gpio::OutputEnableOverride::Invert);
 
     // the PIO now keeps the pin as Input, we can set the pin state to Low.
-    let pin = pin.into_readable_output();
+    let mut pin = pin.into_push_pull_output();
+    pin.set_low().unwrap();
 
     // turn on the pullup
     use crate::there_be_dragons::SetPulls;
     let _pulls = pin.as_pulls().unwrap().set_pull_up(true);
+
+    let unio = UNIOBang::new(pin);
 
     loop {}
 }
