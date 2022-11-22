@@ -12,7 +12,7 @@ pub struct UNIOBang<P: PinId> {
 }
 
 impl<P: PinId> OpenDrainPin<P> {
-    fn new_init<S: Into<Pin<P, Input<PullUp>>>>(some_pin: S) -> Self {
+    fn new_init<S: Into<Pin<P, PullUpInput>>>(some_pin: S) -> Self {
         let mut pin: Pin<P, PullUpInput> = some_pin.into();
 
         //
@@ -25,25 +25,24 @@ impl<P: PinId> OpenDrainPin<P> {
         Self::PulledUp(pin)
     }
 
-    fn set_pulled_up(&mut self) -> Result<(), ()> {
-        Err(())
+    fn set_pulled_up(&mut self) -> Option<()> {
+        Some(())
     }
 
-    fn set_low(&mut self) -> Result<(), ()> {
-        Err(())
+    fn set_low(&mut self) -> Option<()> {
+        None.unwrap()
     }
 }
 
-
 impl<P: PinId> UNIOBang<P> {
     pub fn new<S: Into<Pin<P, Input<PullUp>>>>(some_pin: S) -> Self {
-        return Self {
+        Self {
             pin: OpenDrainPin::new_init(some_pin),
-        };
+        }
     }
 
-    pub write_word(&mut self, word: u8) -> Result<(), ()> {
-        self.pin.set_open();
-        Err(())
+    pub fn write_word(&mut self, word: u8) -> Option<()> {
+        self.pin.set_pulled_up();
+        None
     }
 }
