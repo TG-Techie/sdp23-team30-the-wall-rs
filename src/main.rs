@@ -64,64 +64,18 @@ fn main() -> ! {
         &mut pac.RESETS,
     );
 
-    // setup the rp2040's pio
-    // https://learn.adafruit.com/assets/100337
-    type EEPROMPinId = Gpio10;
-    type SCL = EEPROMPinId;
-    type P = pac::PIO0;
+    type PIN = Gpio10;
+    let pin = pins.d10.into_pull_up_input();
 
-    let eeprom_pin_id = 10; //EEPROMPinId::DYN.num;
-    let eeprom_pin: Pin<EEPROMPinId, gpio::Disabled<PullDown>> = pins.d10;
-    let scl = eeprom_pin;
-
-    let program = pio_proc::pio_file!("src/eeprom_11lcxx.pio");
-
-    let (mut pio, sm0, _, _, _) = pac.PIO0.split(&mut pac.RESETS);
-    let installed = pio.install(&program.program).unwrap();
-    let (mut sm, _, mut tx) = rp2040_hal::pio::PIOBuilder::from_program(installed)
-        // .buffers(rp2040_hal::pio::Buffers::RxTx)
-        .set_pins(eeprom_pin_id, 1)
-        .out_pins(eeprom_pin_id, 1)
-        .in_pin_base(eeprom_pin_id)
-        .side_set_pin_base(eeprom_pin_id)
-        .in_shift_direction(ShiftDirection::Left)
-        .out_shift_direction(ShiftDirection::Right)
-        .clock_divisor(1000.0)
-        .build(sm0);
-
-    // enable pull up on SDA & SCL: idle bus
-    let scl = scl.into_pull_up_input();
-
-    // This will pull the bus high for a little bit of time
-    sm.set_pins([(SCL::DYN.num, PinState::High)]);
-    sm.set_pindirs([(SCL::DYN.num, PinDir::Output)]);
-
-    // attach SCL pin to pio
-    let mut scl: Pin<SCL, gpio::Function<P>> = scl.into_mode();
     // configure SCL pin as inverted
-    scl.set_output_enable_override(rp2040_hal::gpio::OutputEnableOverride::Invert);
+    pin.set_output_enable_override(rp2040_hal::gpio::OutputEnableOverride::Invert);
 
     // the PIO now keeps the pin as Input, we can set the pin state to Low.
-    sm.set_pins([(SCL::DYN.num, PinState::Low)]);
+    let pin = pin.into_readable_output();
+    // turn on the pullup
+    let _pulls = pin.as_pulls().unwrap().set_pull_up(true);
 
-    use there_be_dragons::SetPulls;
-    let _pulls = scl.as_pulls().unwrap().set_pull_up(true);
-
-    // run
-    let _sm = sm.start();
-
-    loop {
-        if tx.is_empty() {
-            delay.delay_ms(5);
-            tx.write((0b10110101_u32 << 24).reverse_bits());
-        }
-        // info!("on!");
-        // led_pin.set_high().unwrap();
-        // delay.delay_ms(500);
-        // info!("off!");
-        // led_pin.set_low().unwrap();
-        // delay.delay_ms(500);
-    }
+    loop {}
 }
 
 // End of file
