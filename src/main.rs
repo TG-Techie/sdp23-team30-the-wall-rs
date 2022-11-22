@@ -32,6 +32,7 @@ use rp2040_hal::pio::{PIOExt, PinDir, PinState, ShiftDirection};
 /* ========== [ Main story / entry code ] ========== */
 
 mod there_be_dragons;
+mod unio_bang;
 
 #[entry]
 fn main() -> ! {
@@ -64,15 +65,17 @@ fn main() -> ! {
         &mut pac.RESETS,
     );
 
-    type PIN = Gpio10;
-    let pin = pins.d10.into_pull_up_input();
+    type _PIN = Gpio10;
+    let mut pin = pins.d10.into_pull_up_input();
 
     // configure SCL pin as inverted
     pin.set_output_enable_override(rp2040_hal::gpio::OutputEnableOverride::Invert);
 
     // the PIO now keeps the pin as Input, we can set the pin state to Low.
     let pin = pin.into_readable_output();
+
     // turn on the pullup
+    use crate::there_be_dragons::SetPulls;
     let _pulls = pin.as_pulls().unwrap().set_pull_up(true);
 
     loop {}
